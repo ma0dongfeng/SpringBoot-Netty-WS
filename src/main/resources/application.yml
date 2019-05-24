@@ -1,0 +1,53 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+    driverClassName: com.mysql.jdbc.Driver
+    filters: "stat,wall,slf4j"
+    initialSize: 1
+    maxActive: 20
+    maxPoolPreparedStatementPerConnectionSize: 20
+    maxWait: 60000
+    minEvictableIdleTimeMillis: 30000
+    minIdle: 3
+    password: meidi
+    poolPreparedStatements: true
+    testOnBorrow: false
+    testOnReturn: false
+    testWhileIdle: true
+    timeBetweenEvictionRunsMillis: 60000
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: "jdbc:mysql://122.227.58.83:3306/analysis?useUnicode=true&characterEncoding=utf8"
+    username: root
+    validationQuery: "select 'x'"
+  redis:
+    cluster:
+      nodes: "122.227.58.83:6373,122.227.58.83:6374,122.227.58.83:6375"
+    jedis:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+    timeout: 2000ms
+    commandTimeout: 5000ms
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: mybatis/**/*Mapper.xml
+  typeAliasesPackage: com.example.demo.domain
+
+jdbc:
+  driverClassName: com.mysql.jdbc.Driver
+  url: jdbc:mysql://122.227.58.83:3306/talk?zeroDateTimeBehavior=convertToNull&amp;useUnicode=true&amp;characterEncoding=utf-8
+  username: root
+  password: meidi
+
+jdbc2:
+  driverClassName: com.mysql.jdbc.Driver
+  url: jdbc:mysql://122.227.58.83:3306/analysis?zeroDateTimeBehavior=convertToNull&amp;useUnicode=true&amp;characterEncoding=utf-8
+  username: root
+  password: meidi
+
+logging:
+  config: classpath:log4j2-spring.xml

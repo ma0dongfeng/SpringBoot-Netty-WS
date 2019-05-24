@@ -1,5 +1,9 @@
-package com.example.demo.controller;
+package com.example.demo.handler;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.example.demo.command.CommandHandler;
+import com.example.demo.command.CommandHolder;
 import com.example.demo.config.NettyConfig;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -13,11 +17,17 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.validation.constraints.NotNull;
+import java.text.ParseException;
 
 /**
  * 接受/处理/响应客户端websocke请求的核心业务处理类
  */
-public class MyWebSockeHandler extends SimpleChannelInboundHandler<Object> {
+public class WebSockeHandler extends SimpleChannelInboundHandler<Object> {
+    protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private WebSocketServerHandshaker webSocketServerHandshaker;
     private static final String WEB_SOCKET_URL = "ws://localhost:8888/webSocket";
@@ -26,13 +36,13 @@ public class MyWebSockeHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void channelActive (ChannelHandlerContext context)throws Exception{
         NettyConfig.group.add(context.channel());
-        System.out.println("客户端与服务端连接开启");
+        logger.warn("客户端与服务端连接开启");
     }
     //客户端与服务端断开连接的时候调用
     @Override
     public void channelInactive(ChannelHandlerContext context)throws Exception{
         NettyConfig.group.remove(context.channel());
-        System.out.println("客户端与服务端连接断开");
+        logger.warn("客户端与服务端连接断开");
     }
     //服务端接收客户端发送过来的数据结束之后调用
     @Override
@@ -61,7 +71,7 @@ public class MyWebSockeHandler extends SimpleChannelInboundHandler<Object> {
      * @param context
      * @param webSocketFrame
      */
-    private void handWebSocketFrame(ChannelHandlerContext context,WebSocketFrame webSocketFrame){
+    private void handWebSocketFrame(ChannelHandlerContext context,WebSocketFrame webSocketFrame)throws Exception{
         if (webSocketFrame instanceof CloseWebSocketFrame){//判断是否是关闭websocket的指令
             webSocketServerHandshaker.close(context.channel(),(CloseWebSocketFrame) webSocketFrame.retain());
         }
@@ -70,20 +80,33 @@ public class MyWebSockeHandler extends SimpleChannelInboundHandler<Object> {
             return;
         }
         if (!(webSocketFrame instanceof TextWebSocketFrame)){//判断是否是二进制消息
-            System.out.println("不支持二进制消息");
+            logger.warn("不支持二进制消息");
             throw new RuntimeException(this.getClass().getName());
         }
         //返回应答消息
         //获取客户端向服务端发送的消息
-        String request = ((TextWebSocketFrame) webSocketFrame ).text();
-        System.out.println("服务端收到客户端的消息：" + request);
-        TextWebSocketFrame textWebSocketFrame = new TextWebSocketFrame(context.channel().id() + ":" + request);
+        String reqParam = ((TextWebSocketFrame) webSocketFrame ).text();
+        logger.warn("[websocket connection] receive message : " + reqParam);
+        JSONObject recJson = vaildJson(reqParam);
+        CommandHandler commandHandler = CommandHolder.getHandler(recJson.getString("cmd"));
+        try {
+            commandHandler.handle(recJson);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        TextWebSocketFrame textWebSocketFrame = new TextWebSocketFrame(context.channel().id() + ":" + "你个笨比");
         //服务端向每个连接上来的客户端发送消息
         NettyConfig.group.writeAndFlush(textWebSocketFrame);
     }
 
-
-
+    public JSONObject vaildJson(String recMsg) throws ParseException{
+        JSONObject recJson = null;
+        if(recMsg.startsWith("{")){
+            return recJson = JSON.parseObject(recMsg);
+        }
+        throw new ParseException("Invaild JSON",0);
+    }
 
     /**
      * 处理客户端向服务端发起http握手请求业务
@@ -105,7 +128,7 @@ public class MyWebSockeHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     /**
-     * 服务端想客户端发送响应消息
+     * 服务端向客户端发送响应消息
      * @param context
      * @param fullHttpRequest
      * @param defaultFullHttpResponse

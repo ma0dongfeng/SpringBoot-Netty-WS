@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.dao.MsgDao">
+
+    <select id="get" resultType="com.example.demo.domain.MsgDO">
+		select `msg`,`msg_time`,`msg_type`,`msg_id`,`talk_id`,`cid` from msg where talk_id = #{talkId}
+	</select>
+
+    <insert id="save" parameterType="com.example.demo.domain.MsgDO" useGeneratedKeys="true" keyProperty="id">
+
+		insert into sys_log
+		(
+			`msg`,
+			`msg_time`,
+			`msg_type`,
+			`msg_id`,
+			`talk_id`,
+			`cid`
+		)
+		values
+		(
+			#{msg},
+			#{msgTime},
+			#{msgType},
+			#{msgId},
+			#{talkId},
+			#{cid}
+		)
+	</insert>
+
+</mapper>
